@@ -84,8 +84,9 @@ the final probing runs, but one of its top three.
 | Qwen3-8B-Base | `qwen3-8b-base` | 19 of 36 |
 
 Only the weights of the kept layers are loaded. The loading report lists the
-other layers as `UNEXPECTED`; this is expected. To use another LLM, see
-[Adding an LLM](#adding-an-llm).
+other layers as `UNEXPECTED`; this is expected. To run TILE with one of these
+LLMs, see [Using another LLM](#using-another-llm); to add an LLM of your own,
+see [Adding an LLM](#adding-an-llm).
 
 ## 2. Extract the embeddings
 
@@ -137,6 +138,26 @@ done is skipped. Besides the scores, a result holds:
 - the share of the extraction time that falls on the rows used;
 - the peak GPU memory of the learner.
 
+### Using another LLM
+
+TILE runs with Llama-3.1-8B by default. To run it with another LLM, download
+it, then pass its name (see the table of step 1) with `--llm`, to both the
+extraction and the evaluation:
+
+```bash
+python scripts/download_llms.py --llms qwen3-8b-base
+python scripts/extract_embeddings.py --table data/my_table.parquet --target price \
+    --llm qwen3-8b-base
+python scripts/evaluate.py --table data/my_table.parquet --target price \
+    --task regression --learner tabpfn-2.5 --llm qwen3-8b-base
+```
+
+The embeddings of each LLM are kept apart, in `embeddings/<llm>/`, and the
+results are named after it, so the LLMs can be compared on the same tables. In
+the Python API, load the embeddings of that LLM:
+`Embeddings.load("embeddings/qwen3-8b-base/my_table.npy")`. An LLM added with
+`scripts/add_llm.py` is used the same way, under the name it was given.
+
 ### Learners and their feature windows
 
 The window of a learner was selected on the 27 tables of the paper's probing
@@ -180,11 +201,13 @@ holdout protocol, on 1,024, 10,000 and 50,000 training rows as in the paper.
 The tables too small for a training size are skipped:
 
 ```bash
+LLM=llama-3.1-8b
 LEARNER=tabpfn-2.5
 for dir in data/tile/*/; do
-    python scripts/extract_embeddings.py --table "$dir"
+    python scripts/extract_embeddings.py --table "$dir" --llm "$LLM"
     for n in 1024 10000 50000; do
-        python scripts/evaluate.py --table "$dir" --learner "$LEARNER" --num_train $n
+        python scripts/evaluate.py --table "$dir" --llm "$LLM" --learner "$LEARNER" \
+            --num_train $n
     done
 done
 ```
@@ -219,15 +242,51 @@ hf download inria-soda/STRABLE-benchmark --repo-type dataset \
 **2. Extract the embeddings and evaluate TILE** on every table:
 
 ```bash
+LLM=llama-3.1-8b
 LEARNER=tabpfn-2.5
 for dir in data/strable/*/; do
-    python scripts/extract_embeddings.py --table "$dir"
-    python scripts/evaluate.py --table "$dir" --learner "$LEARNER" --protocol strable
+    python scripts/extract_embeddings.py --table "$dir" --llm "$LLM"
+    python scripts/evaluate.py --table "$dir" --llm "$LLM" --learner "$LEARNER" \
+        --protocol strable
 done
 ```
 
 The results of a table are saved to `results/strable/<table>/`, one file per
 fold.
+
+**Results.** Raw scores of the paper (×100), by tabular learner:
+
+- **Classification:** the ROC AUC, averaged over the 32 classification tables.
+- **Regression:** the R² clipped at 0, averaged over the 76 regression tables.
+
+Each table is scored by its average over the 3 folds.
+
+- **TF-IDF:** the TF-IDF baseline of STRABLE with the same learner.
+- **Best other encoder:** the best of the other string encoders of the
+  [STRABLE leaderboard](https://huggingface.co/datasets/inria-soda/STRABLE-benchmark)
+  with that learner, chosen separately for each task.
+- **"no PCA":** the embeddings reach the learner unreduced.
+
+| Learner | TILE (Llama-3.1-8B) | TILE (Llama-3.1-70B) | TF-IDF | Best other encoder |
+|---|---|---|---|---|
+| **Classification ROC AUC** | | | | |
+| Causilo | 87.19 | **87.63** | 86.36 | 86.34 (Qwen3-Embedding-8B, no PCA) |
+| TabPFN-3.5 | 87.27 | **87.66** | 86.75 | 86.56 (Qwen3-Embedding-8B, no PCA) |
+| TabPFN-2.5 | **86.59** | — | 85.93 | 85.83 (Llama-3.1-8B, PCA to 30) |
+| TabICLv2 | 86.62 | **87.05** | 85.38 | 85.06 (Qwen3-Embedding-8B, no PCA) |
+| TabPFN-3 | 86.18 | **86.75** | 85.19 | 84.75 (Qwen3-Embedding-8B, no PCA) |
+| **Regression R²** | | | | |
+| Causilo | 73.41 | **74.23** | 70.66 | 71.52 (Qwen3-Embedding-8B, no PCA) |
+| TabPFN-3.5 | 72.67 | **73.63** | 70.99 | 71.41 (Qwen3-Embedding-8B, no PCA) |
+| TabPFN-2.5 | **72.71** | — | 69.65 | 70.03 (Qwen3-Embedding-8B, no PCA) |
+| TabICLv2 | 71.41 | **72.40** | 68.33 | 68.59 (Qwen3-Embedding-8B, no PCA) |
+| TabPFN-3 | 71.80 | **72.67** | 68.66 | 68.91 (Qwen3-Embedding-8B, no PCA) |
+
+— : TILE (Llama-3.1-70B) with TabPFN-2.5 has not run on every table.
+
+The standard errors due to the cross-validation splits alone are between 0.09
+and 0.17. They hold the tables fixed, so they leave out the spread of scores
+across tables.
 
 The paper's runs used one A100 or A40 GPU and 150 GB of RAM per table. The
 tables have from 550 to 75,000 rows, and each fold trains on two thirds of
