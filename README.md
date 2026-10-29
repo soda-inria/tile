@@ -14,6 +14,8 @@ LLMs, extracts the cell embeddings, and evaluates TILE with a tabular learner.
 
 ## How it works
 
+![TILE pipeline: row serialization, extraction from the intermediate layers of an LLM, columnar pooling and PCA, and in-context prediction by a table foundation model](figures/tile_schema.svg)
+
 1. **Serialization.** Each row becomes one text, one sentence per cell:
    `The <column> is <value>. The <column> is <value>. ...`. Every column except
    the target is included, numbers and dates too.
