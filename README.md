@@ -40,20 +40,7 @@ pip install -e ".[llm,tabpfn,tabicl]"
 
 The `llm` extra installs what the extraction of the embeddings needs. Each
 learner has its own extra, pinned to the version used in the paper. Some
-learners conflict with each other, so they need a separate environment:
-
-| Learners | Extra | Constraint |
-|---|---|---|
-| `tabpfn-2.5`, `tabpfn-3` | `tabpfn` | |
-| `tabicl` | `tabicl` | |
-| `realmlp` | `realmlp` | |
-| `xgboost` | `xgboost` | |
-| `catboost` | `catboost` | |
-| `tabpfn-3.5` | `tabpfn35` | separate environment: `tabpfn` 9 instead of 8 |
-| `exaone` | `exaone` | separate environment: `torch>=2.6`, Ampere or newer GPU |
-| `causilo` | `causilo` | separate environment: `torch>=2.13`, Python < 3.13 |
-| `kumo-small`, `kumo-medium`, `kumo-large` | `kumo` | separate environment: `torch>=2.7`, Python >= 3.11 |
-
+learners conflict with each other, so they need a separate environment.
 The foundation models download their checkpoints on first use. The TabPFN
 checkpoints require you to accept their license, for example through the
 `TABPFN_TOKEN` environment variable (see the TabPFN documentation).
