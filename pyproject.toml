@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tile"
+version = "0.1.0"
+description = "TILE: Table-Interfaced LLM Embeddings, for tabular learning with strings"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=2.0",
+    "pandas>=2.2",
+    "pyarrow>=17",
+    "scikit-learn>=1.6",
+    "scipy>=1.13",
+    "skrub>=0.7",
+]
+
+[project.optional-dependencies]
+# The extraction of the embeddings
+llm = ["torch>=2.5", "transformers>=4.56", "accelerate>=1.0", "huggingface_hub>=0.34", "tqdm"]
+# The learners, at the versions of the paper
+tabpfn = ["tabpfn==8.0.6"]  # TabPFN-2.5 and TabPFN-3
+tabpfn35 = ["tabpfn==9.0.0"]  # TabPFN-3.5
+tabicl = ["tabicl==2.1.1"]
+exaone = ["exaonetabular==1.0.0"]
+causilo = ["causilo==1.0.2"]
+kumo = ["structured-data-models==0.2.1"]
+realmlp = ["pytabkit==1.7.3"]
+xgboost = ["xgboost==3.2.0"]
+catboost = ["catboost==1.2.10"]
+
+[tool.setuptools]
+packages = ["tile"]
