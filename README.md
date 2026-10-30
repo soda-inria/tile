@@ -254,24 +254,24 @@ Each table is scored by its average over the 3 folds.
 - **Best other encoder:** the best of the other string encoders of the
   [STRABLE leaderboard](https://huggingface.co/datasets/inria-soda/STRABLE-benchmark)
   with that learner, chosen separately for each task.
-- **"no PCA":** the embeddings reach the learner unreduced.
+- **"first 30 dims":** the first 30 dimensions of the embeddings, without PCA.
 
 | Learner | TILE (Llama-3.1-8B) | TILE (Llama-3.1-70B) | TF-IDF | Best other encoder |
 |---|---|---|---|---|
 | **Classification ROC AUC** | | | | |
-| Causilo | 87.19 | **87.63** | 86.36 | 86.34 (Qwen3-Embedding-8B, no PCA) |
-| TabPFN-3.5 | 87.27 | **87.66** | 86.75 | 86.56 (Qwen3-Embedding-8B, no PCA) |
-| TabPFN-2.5 | **86.59** | — | 85.93 | 85.83 (Llama-3.1-8B, PCA to 30) |
-| TabICLv2 | 86.62 | **87.05** | 85.38 | 85.06 (Qwen3-Embedding-8B, no PCA) |
-| TabPFN-3 | 86.18 | **86.75** | 85.19 | 84.75 (Qwen3-Embedding-8B, no PCA) |
+| KumoTabular-L | 87.64 | **87.96** | 87.10 | 87.05 (Qwen3-Embedding-8B, first 30 dims) |
+| Causilo | 87.19 | **87.63** | 86.36 | 86.34 (Qwen3-Embedding-8B, first 30 dims) |
+| TabPFN-3.5 | 87.27 | **87.66** | 86.75 | 86.56 (Qwen3-Embedding-8B, first 30 dims) |
+| TabPFN-2.5 | 86.59 | **87.05** | 85.93 | 85.83 (Llama-3.1-8B, standardized, PCA to 30) |
+| TabICLv2 | 86.62 | **87.05** | 85.38 | 85.06 (Qwen3-Embedding-8B, first 30 dims) |
+| TabPFN-3 | 86.18 | **86.75** | 85.19 | 84.75 (Qwen3-Embedding-8B, first 30 dims) |
 | **Regression R²** | | | | |
-| Causilo | 73.41 | **74.23** | 70.66 | 71.52 (Qwen3-Embedding-8B, no PCA) |
-| TabPFN-3.5 | 72.67 | **73.63** | 70.99 | 71.41 (Qwen3-Embedding-8B, no PCA) |
-| TabPFN-2.5 | **72.71** | — | 69.65 | 70.03 (Qwen3-Embedding-8B, no PCA) |
-| TabICLv2 | 71.41 | **72.40** | 68.33 | 68.59 (Qwen3-Embedding-8B, no PCA) |
-| TabPFN-3 | 71.80 | **72.67** | 68.66 | 68.91 (Qwen3-Embedding-8B, no PCA) |
-
-— : TILE (Llama-3.1-70B) with TabPFN-2.5 has not run on every table.
+| KumoTabular-L | 74.68 | **75.45** | 72.73 | 73.02 (Llama-3.1-8B, first 30 dims) |
+| Causilo | 73.41 | **74.23** | 70.66 | 71.52 (Qwen3-Embedding-8B, first 30 dims) |
+| TabPFN-3.5 | 72.67 | **73.63** | 70.99 | 71.41 (Qwen3-Embedding-8B, first 30 dims) |
+| TabPFN-2.5 | 72.71 | **73.65** | 69.65 | 70.03 (Qwen3-Embedding-8B, first 30 dims) |
+| TabICLv2 | 71.41 | **72.40** | 68.33 | 68.59 (Qwen3-Embedding-8B, first 30 dims) |
+| TabPFN-3 | 71.80 | **72.67** | 68.66 | 68.91 (Qwen3-Embedding-8B, first 30 dims) |
 
 The standard errors due to the cross-validation splits alone are between 0.09
 and 0.17. They hold the tables fixed, so they leave out the spread of scores
