@@ -53,7 +53,7 @@ The Llama models are gated: accept their license on the Hugging Face hub, then
 log in with `hf auth login`.
 
 ```bash
-python scripts/download_llms.py                   # Llama-3.1-8B, the LLM of TILE
+python scripts/download_llms.py                   # Llama-3.1-8B
 python scripts/download_llms.py --llms all        # the 7 LLMs of the paper
 ```
 
@@ -252,9 +252,8 @@ Each table is scored by its average over the 3 folds.
 
 - **TF-IDF:** the TF-IDF baseline of STRABLE with the same learner.
 - **Best other encoder:** the best of the other string encoders of the
-  [STRABLE leaderboard](https://huggingface.co/datasets/inria-soda/STRABLE-benchmark)
+  [STRABLE leaderboard](https://huggingface.co/spaces/inria-soda/strable-leaderboard)
   with that learner, chosen separately for each task.
-- **"first 30 dims":** the first 30 dimensions of the embeddings, without PCA.
 
 | Learner | TILE (Llama-3.1-8B) | TILE (Llama-3.1-70B) | TF-IDF | Best other encoder |
 |---|---|---|---|---|
