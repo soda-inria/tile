@@ -272,15 +272,10 @@ Each table is scored by its average over the 3 folds.
 | TabICLv2 | 71.41 | **72.40** | 68.33 | 68.59 (Qwen3-Embedding-8B, first 30 dims) |
 | TabPFN-3 | 71.80 | **72.67** | 68.66 | 68.91 (Qwen3-Embedding-8B, first 30 dims) |
 
-The standard errors due to the cross-validation splits alone are between 0.09
-and 0.17. They hold the tables fixed, so they leave out the spread of scores
-across tables.
-
 The paper's runs used one A100 or A40 GPU and 150 GB of RAM per table. The
 tables have from 550 to 75,000 rows, and each fold trains on two thirds of
 them. A learner that runs out of GPU memory through
-fragmentation can be run with `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`;
-the paper's EXAONE runs always used it.
+fragmentation can be run with `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`.
 
 ## Adding an LLM
 
