@@ -13,7 +13,7 @@ The full LLM is loaded, spread over the visible GPUs. Every layer of the rows
 of a batch is held on the GPU at once: lower `--max_tokens` if it runs out of
 memory. The embeddings of every layer of a table are held in memory, or on
 disk in `--tmp_dir`: up to (layers x string columns x 10,240 rows x hidden
-size) float16 values, 21 GB for Llama-3.1-8B on the largest table.
+size) float32 values, 42 GB for Llama-3.1-8B on the largest table.
 """
 
 import argparse

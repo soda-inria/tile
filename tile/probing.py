@@ -97,7 +97,7 @@ def probe_layers(X, y, task, model, tokenizer, layers, max_tokens=8192, out_dir=
         out = None
         if out_dir is not None:
             out = np.lib.format.open_memmap(
-                f"{tmp}/layers.npy", mode="w+", dtype=np.float16, shape=shape
+                f"{tmp}/layers.npy", mode="w+", dtype=np.float32, shape=shape
             )
         embeddings = pool_cells(
             model, tokenizer, texts, spans, max_tokens, layers=layers, out=out

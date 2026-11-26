@@ -2,10 +2,10 @@
 
     python scripts/download_llms.py                     # TILE's LLM, Llama-3.1-8B
     python scripts/download_llms.py --llms llama-3.2-1b qwen3-0.6b-base
-    python scripts/download_llms.py --llms all          # the 7 LLMs of the paper
+    python scripts/download_llms.py --llms all          # every LLM of `LLMS`
 
-The truncated models are saved to `<models_dir>/<llm>`. The Llama models are
-gated: accept their license on the hub, and log in (`hf auth login`) first.
+The truncated models are saved to `<models_dir>/<llm>`. Some LLMs are gated:
+accept their terms on the hub, and log in (`hf auth login`) first.
 """
 
 import argparse

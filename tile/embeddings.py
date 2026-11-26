@@ -9,6 +9,9 @@ from pathlib import Path
 
 import numpy as np
 
+# The largest finite float16
+FLOAT16_MAX = float(np.finfo(np.float16).max)
+
 
 def serialize(table):
     """Each row as one text, and the characters of each of its cells.
@@ -58,9 +61,14 @@ def pool_cells(model, tokenizer, texts, spans, max_tokens=65536, layers=None, ou
     k the output of the k-th block (0 that of the embeddings), for the layer
     probing: into `out` if given, e.g. a memory map.
 
+    The hidden states of some LLMs (Gemma's) exceed the range of float16,
+    65,504: a column of a float16 array that would overflow is divided by the
+    smallest power of two that fits it, which is exact. TILE standardizes each
+    column before its PCA, so that this scale changes nothing downstream.
+
     Returns:
         A (n_columns, n_rows, hidden_size) float16 array, or with `layers` a
-        (n_layers, n_columns, n_rows, hidden_size) one.
+        (n_layers, n_columns, n_rows, hidden_size) float32 one.
     """
     import torch
     from tqdm import tqdm
@@ -82,11 +90,14 @@ def pool_cells(model, tokenizer, texts, spans, max_tokens=65536, layers=None, ou
 
     shape = (n_cols, n_rows, model.config.hidden_size)
     if layers is None:
-        embeddings = np.empty(shape, np.float16)
+        # Zeros, not uninitialized memory: an overflowing column is rescaled whole
+        embeddings = np.zeros(shape, np.float16)
         targets = [embeddings]
     else:
-        embeddings = np.empty((len(layers), *shape), np.float16) if out is None else out
+        embeddings = np.empty((len(layers), *shape), np.float32) if out is None else out
         targets = list(embeddings)
+    # The power of two each column of each target is divided by
+    scales = np.ones((len(targets), n_cols), np.float32)
     start = 0
     with tqdm(total=n_rows, desc="Pooling cells", mininterval=60) as progress:
         while start < n_rows:
@@ -126,17 +137,34 @@ def pool_cells(model, tokenizer, texts, spans, max_tokens=65536, layers=None, ou
                 if no_bos:
                     # The sink, the first token of the row
                     in_cell[:, :, 0] = 0
-                for target, hidden in zip(targets, states):
+                for target, scale, hidden in zip(targets, scales, states):
                     # The layers of a model spread over GPUs are on different ones
                     weights = in_cell.to(hidden.device)
                     pooled = torch.bmm(weights, hidden.float()) / weights.sum(
                         -1, keepdim=True
                     )
-                    target[:, idx] = pooled.transpose(0, 1).half().cpu().numpy()
+                    pooled = pooled.transpose(0, 1).cpu().numpy()
+                    if target.dtype == np.float16:
+                        _fit_float16(target, pooled, scale)
+                    target[:, idx] = pooled / scale[:, None, None]
             start += len(idx)
             progress.update(len(idx))
 
     return embeddings
+
+
+def _fit_float16(target, pooled, scale):
+    """Divides the columns of `target` by powers of two, so that the cell
+    embeddings `pooled` of a batch fit in float16 once divided by `scale`.
+
+    `scale` holds the power of two of each column, updated in place; the rows
+    already written are divided again, which is exact but for subnormals.
+    """
+    peak = np.nanmax(np.abs(pooled), axis=(1, 2), initial=0) / scale
+    for col in np.flatnonzero(peak > FLOAT16_MAX):
+        factor = np.float32(2.0 ** np.ceil(np.log2(peak[col] / FLOAT16_MAX)))
+        target[col] /= factor
+        scale[col] *= factor
 
 
 def embed_table(table, model, tokenizer, max_tokens=65536):
