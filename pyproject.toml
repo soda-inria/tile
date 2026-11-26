@@ -26,7 +26,10 @@ tabpfn = ["tabpfn==8.0.6"]  # TabPFN-2.5 and TabPFN-3
 tabpfn35 = ["tabpfn==9.0.0"]  # TabPFN-3.5
 tabicl = ["tabicl==2.1.1"]
 exaone = ["exaonetabular==1.0.0"]
-causilo = ["causilo==1.0.2"]
+causilo = ["causilo==1.0.2"]  # Causilo 1.0
+causilo15 = ["causilo==1.5.0"]  # Causilo 1.5, and 1.0
+seldon = ["neuralk-oss==0.3.0"]  # Seldon and Seldon-mini
+inpriora = ["inpriora @ git+https://github.com/ai-for-data/inpriora.git@4b0d403c22100751e38765388273d3f32858d61c"]
 kumo = ["structured-data-models==0.2.1"]
 realmlp = ["pytabkit==1.7.3"]
 xgboost = ["xgboost==3.2.0"]

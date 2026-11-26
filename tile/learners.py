@@ -1,6 +1,7 @@
 """The tabular learners TILE was run with, and their feature windows."""
 
 import tempfile
+import warnings
 from dataclasses import dataclass
 
 import numpy as np
@@ -29,7 +30,11 @@ LEARNERS = {
     "tabpfn-3.5": Learner((200, 800), True),
     "tabicl": Learner((200, 800), True),
     "exaone": Learner((150, 400), True),
-    "causilo": Learner((200, 800), True),
+    "causilo-1.0": Learner((200, 800), True),
+    "causilo-1.5": Learner((300, 1200), True),
+    "seldon": Learner((200, 500), True),
+    "seldon-mini": Learner((200, 500), True),
+    "inpriora": Learner((200, 800), True),
     "kumo-small": Learner((200, 600), True),
     "kumo-medium": Learner((200, 600), True),
     "kumo-large": Learner((200, 600), True),
@@ -38,6 +43,21 @@ LEARNERS = {
     "catboost": Learner(),
     "ridge": Learner(),
 }
+
+# The former names of the learners, still accepted
+RENAMED = {"causilo": "causilo-1.0"}  # Renamed in TILE 0.2.0
+
+
+def resolve_learner(name):
+    """The name in `LEARNERS` of the learner `name`, which may be a former one."""
+    if name in RENAMED:
+        warnings.warn(
+            f"The learner {name!r} is now {RENAMED[name]!r}; {name!r} will be removed",
+            FutureWarning,
+            stacklevel=3,
+        )
+        return RENAMED[name]
+    return name
 
 # The search space of XGBoost, the only learner tuned (`tune_xgboost`)
 XGBOOST_SEARCH = {
@@ -129,6 +149,7 @@ def make_learner(name, task, device="cuda", n_base=None, params=None):
     `params` the hyperparameters of XGBoost. The checkpoints of the foundation
     models are downloaded on first use.
     """
+    name = resolve_learner(name)
     regression = task == "regression"
 
     if name.startswith("tabpfn"):
@@ -156,12 +177,41 @@ def make_learner(name, task, device="cuda", n_base=None, params=None):
         model = EXAONETabularRegressor if regression else EXAONETabularClassifier
         return make_pipeline(_Ordinal(n_base), model.from_pretrained(device=device))
 
-    if name == "causilo":
+    if name.startswith("causilo"):
         # The columns of strings are its categorical features
+        from importlib.metadata import version as package_version
+
         from causilo import CausiloClassifier, CausiloRegressor
 
+        # From causilo 1.5 on, one package runs every version, 1.5 by default;
+        # causilo 1.0 runs 1.0 only
+        options = {}
+        if not package_version("causilo").startswith("1.0."):
+            options["model_version"] = name.split("-")[1]
+        elif name != "causilo-1.0":
+            raise ImportError(f"{name} needs causilo>=1.5 (the causilo15 extra)")
         model = CausiloRegressor if regression else CausiloClassifier
-        return model(device=device, random_state=1234)
+        return model(device=device, random_state=1234, **options)
+
+    if name.startswith("seldon"):
+        # Its column types are inferred: the strings are its categories
+        from neuralk_oss import SeldonClassifier, SeldonRegressor
+
+        model = SeldonRegressor if regression else SeldonClassifier
+        return make_pipeline(
+            _Frame(n_base, missing_categories=True),
+            model.from_pretrained(name, device=device, random_state=1234),
+        )
+
+    if name == "inpriora":
+        # The columns of strings of a DataFrame are its categories
+        from inpriora import InprioraClassifier, InprioraRegressor
+
+        model = InprioraRegressor if regression else InprioraClassifier
+        return make_pipeline(
+            _Frame(n_base, missing_categories=True),
+            model(device=device, random_seed=1234),
+        )
 
     if name.startswith("kumo"):
         from tile.kumo import KumoTabularClassifier, KumoTabularRegressor

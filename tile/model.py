@@ -3,7 +3,14 @@
 import numpy as np
 
 from tile.features import TILEFeatures
-from tile.learners import LEARNERS, make_learner, predict, predict_proba, tune_xgboost
+from tile.learners import (
+    LEARNERS,
+    make_learner,
+    predict,
+    predict_proba,
+    resolve_learner,
+    tune_xgboost,
+)
 
 
 class TILE:
@@ -36,7 +43,8 @@ class TILE:
         self.window = window
 
     def fit(self, X, y, embeddings):
-        spec = LEARNERS[self.learner]
+        learner = resolve_learner(self.learner)
+        spec = LEARNERS[learner]
         y = np.asarray(y)
         if self.task == "classification":
             self.classes_, y = np.unique(y, return_inverse=True)
@@ -46,12 +54,12 @@ class TILE:
         self.features_ = TILEFeatures(
             spec.window if self.window is None else self.window,
             spec.native_categories,
-            power_transform=self.learner == "ridge",
+            power_transform=learner == "ridge",
         )
         Z = self.features_.fit_transform(X, y, embeddings, self.task)
-        params = tune_xgboost(Z, y, self.task) if self.learner == "xgboost" else {}
+        params = tune_xgboost(Z, y, self.task) if learner == "xgboost" else {}
         self.model_ = make_learner(
-            self.learner, self.task, self.device, self.features_.n_base_, params
+            learner, self.task, self.device, self.features_.n_base_, params
         )
         self.model_.fit(Z, y)
         return self
