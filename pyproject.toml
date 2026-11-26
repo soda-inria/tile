@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tile"
-version = "0.1.0"
+version = "0.2.0"
 description = "TILE: Table-Interfaced LLM Embeddings, for tabular learning with strings"
 readme = "README.md"
 license = { file = "LICENSE" }

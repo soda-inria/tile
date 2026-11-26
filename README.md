@@ -43,24 +43,37 @@ pip install -e ".[llm,tabpfn,tabicl]"
 The `llm` extra installs what the extraction of the embeddings needs. Each
 learner has its own extra, pinned to the version used in the paper. Some
 learners conflict with each other, so they need a separate environment.
-The foundation models download their checkpoints on first use. The TabPFN
-checkpoints require you to accept their license, for example through the
-`TABPFN_TOKEN` environment variable (see the TabPFN documentation).
+The foundation models download their checkpoints on first use. Some are
+gated: accept their terms on the Hugging Face hub, then log in with
+`hf auth login`.
 
 ## 1. Download and truncate the LLMs
 
-The Llama models are gated: accept their license on the Hugging Face hub, then
-log in with `hf auth login`.
+**TILE is LLM-agnostic: any LLM of the Hugging Face hub can provide its
+embeddings, cut at the layer that predicts best (see
+[Adding an LLM](#adding-an-llm)).** The table below lists LLMs we have
+tried, and the layer each is cut at.
+
+**As of November 2026, for performance, we recommend Llama-3.1-70B,
+Gemma-3-12B and Llama-3.1-8B, in this order; for fast and light usage, we
+recommend Llama-3.2-1B or Gemma-3-1B.** For their cost-performance
+trade-offs, see the
+[STRABLE leaderboard](https://huggingface.co/spaces/inria-soda/strable-leaderboard).
+
+Some LLMs are gated: accept their terms on the Hugging Face hub, then log in
+with `hf auth login`.
 
 ```bash
-python scripts/download_llms.py                   # Llama-3.1-8B
-python scripts/download_llms.py --llms all        # the 7 LLMs of the paper
+python scripts/download_llms.py                     # Llama-3.1-8B
+python scripts/download_llms.py --llms gemma-3-12b  # any LLM of the table
+python scripts/download_llms.py --llms all          # every LLM of the table
 ```
 
 Each LLM is cut at one of the layers whose cell embeddings predicted best in
-the layer probing of the paper, and saved to `models/<llm>`. The scores of the
-top layers are close: for some LLMs, the layer kept is not the very best of
-the final probing runs, but one of its top three.
+the layer probing, and saved to `models/<llm>`: that of the paper for its
+seven LLMs, and that of `scripts/add_llm.py` for the others. The scores of the
+top layers are close: for some LLMs of the paper, the layer kept is not the
+very best of the final probing runs, but one of its top three.
 
 | LLM | Name | Layers kept |
 |---|---|---|
@@ -71,6 +84,12 @@ the final probing runs, but one of its top three.
 | Qwen3-0.6B-Base | `qwen3-0.6b-base` | 16 of 28 |
 | Qwen3-4B-Base | `qwen3-4b-base` | 20 of 36 |
 | Qwen3-8B-Base | `qwen3-8b-base` | 19 of 36 |
+| Gemma-3-1B | `gemma-3-1b` | 9 of 26 |
+| Gemma-3-4B | `gemma-3-4b` | 15 of 34 |
+| Gemma-3-12B | `gemma-3-12b` | 21 of 48 |
+| Mistral-7B-v0.3 | `mistral-7b` | 17 of 32 |
+| Granite-3.3-8B-Base | `granite-3.3-8b` | 34 of 40 |
+| Nemotron-3-Embed-8B (bidirectional) | `nemotron-3-embed-8b` | 20 of 34 |
 
 Only the weights of the kept layers are loaded. The loading report lists the
 other layers as `UNEXPECTED`; this is expected. To run TILE with one of these
@@ -91,7 +110,9 @@ Then `--target` (and `--task` below) can be left out, and the table is named
 after its folder.
 
 The embeddings are saved to `embeddings/<llm>/my_table.npy`. This is a float16
-array of shape (columns, rows, hidden size). Next to it, a `.json` file holds
+array of shape (columns, rows, hidden size); a column whose values would
+overflow float16 (as with Gemma) is divided by a power of two, which TILE's
+standardization undoes. Next to it, a `.json` file holds
 the columns and the extraction statistics: time, peak GPU memory and GPU.
 
 Rows are batched by a budget of 65,536 tokens (`--max_tokens`). Lower it if
@@ -161,7 +182,11 @@ the table.
 | TabPFN-3.5 | `tabpfn-3.5` | 200 to 800 | ✓ |
 | TabICLv2 | `tabicl` | 200 to 800 | ✓ |
 | EXAONE-Tabular | `exaone` | 150 to 400 | ✓ |
-| Causilo | `causilo` | 200 to 800 | ✓ |
+| Causilo 1.0 | `causilo-1.0` | 200 to 800 | ✓ |
+| Causilo 1.5 | `causilo-1.5` | 300 to 1,200 | ✓ |
+| Seldon | `seldon` | 200 to 500 | ✓ |
+| Seldon-mini | `seldon-mini` | 200 to 500 | ✓ |
+| InPriora | `inpriora` | 200 to 800 | ✓ |
 | KumoTabular (small, medium, large) | `kumo-small`, `kumo-medium`, `kumo-large` | 200 to 600 | ✓ |
 | RealMLP | `realmlp` | none | |
 | XGBoost | `xgboost` | none | |
@@ -259,14 +284,14 @@ Each table is scored by its average over the 3 folds.
 |---|---|---|---|---|
 | **Classification ROC AUC** | | | | |
 | KumoTabular-L | 87.64 | **87.96** | 87.10 | 87.05 (Qwen3-Embedding-8B, first 30 dims) |
-| Causilo | 87.19 | **87.63** | 86.36 | 86.34 (Qwen3-Embedding-8B, first 30 dims) |
+| Causilo 1.0 | 87.19 | **87.63** | 86.36 | 86.34 (Qwen3-Embedding-8B, first 30 dims) |
 | TabPFN-3.5 | 87.27 | **87.66** | 86.75 | 86.56 (Qwen3-Embedding-8B, first 30 dims) |
 | TabPFN-2.5 | 86.59 | **87.05** | 85.93 | 85.83 (Llama-3.1-8B, standardized, PCA to 30) |
 | TabICLv2 | 86.62 | **87.05** | 85.38 | 85.06 (Qwen3-Embedding-8B, first 30 dims) |
 | TabPFN-3 | 86.18 | **86.75** | 85.19 | 84.75 (Qwen3-Embedding-8B, first 30 dims) |
 | **Regression R²** | | | | |
 | KumoTabular-L | 74.68 | **75.45** | 72.73 | 73.02 (Llama-3.1-8B, first 30 dims) |
-| Causilo | 73.41 | **74.23** | 70.66 | 71.52 (Qwen3-Embedding-8B, first 30 dims) |
+| Causilo 1.0 | 73.41 | **74.23** | 70.66 | 71.52 (Qwen3-Embedding-8B, first 30 dims) |
 | TabPFN-3.5 | 72.67 | **73.63** | 70.99 | 71.41 (Qwen3-Embedding-8B, first 30 dims) |
 | TabPFN-2.5 | 72.71 | **73.65** | 69.65 | 70.03 (Qwen3-Embedding-8B, first 30 dims) |
 | TabICLv2 | 71.41 | **72.40** | 68.33 | 68.59 (Qwen3-Embedding-8B, first 30 dims) |
@@ -279,7 +304,7 @@ fragmentation can be run with `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`
 
 ## Adding an LLM
 
-`scripts/add_llm.py` makes any decoder LLM of the Hugging Face hub an LLM of
+`scripts/add_llm.py` makes any LLM of the Hugging Face hub an LLM of
 TILE, with the selection of the paper. Every layer is probed on the 27
 probing tables of the TILE benchmark, downloaded to `data/tile` (see above):
 
@@ -306,8 +331,8 @@ The score of each table is saved to `results/probing/<name>/`, and a table
 already probed is skipped. The full LLM is loaded, spread over the visible
 GPUs, and the hidden states of every layer are held on the GPU for a batch of
 rows: lower `--max_tokens` (default 8,192) if it runs out of memory. The cell
-embeddings of every layer of a table are held at once: about 21 GB for
-Llama-3.1-8B on the largest table, which `--tmp_dir` puts on disk instead of
+embeddings of every layer of a table are held at once, in float32: about 42 GB
+for Llama-3.1-8B on the largest table, which `--tmp_dir` puts on disk instead of
 in memory. `--step 2` probes every other layer, to halve that.
 
 ## Adding a table foundation model
@@ -366,6 +391,14 @@ are needed.
 
 The LLMs run in bfloat16, and several learners run on GPU: repeated runs, and
 runs on other hardware, can differ slightly.
+
+The releases are tagged, and [CHANGELOG.md](CHANGELOG.md) lists the changes
+of each one. Version 0.1.0 is the code of the paper. To install a given
+version, for example 0.1.0:
+
+```bash
+pip install "tile[llm,tabpfn] @ git+https://github.com/soda-inria/tile.git@v0.1.0"
+```
 
 ## Citation
 
