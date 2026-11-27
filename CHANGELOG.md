@@ -7,6 +7,17 @@ minor version (0.x.0) may change the API.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-27
+
+### Fixed
+
+- `TILEFeatures` now standardizes and reduces the cell embeddings in float64,
+  whatever their dtype. With float32 cells, the components of a column with
+  few distinct cells that should be zero came out as rounding noise that
+  differed between training and new rows, which hurt learners that
+  standardize their input. Float16 embeddings give very slightly different
+  features than before.
+
 ## [0.2.0] - 2026-11-26
 
 ### Added
@@ -42,6 +53,7 @@ minor version (0.x.0) may change the API.
 The code released with the paper
 ([arXiv:2610.17065](https://arxiv.org/abs/2610.17065)).
 
-[Unreleased]: https://github.com/soda-inria/tile/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/soda-inria/tile/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/soda-inria/tile/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/soda-inria/tile/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/soda-inria/tile/releases/tag/v0.1.0

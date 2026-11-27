@@ -194,9 +194,9 @@ class TILEFeatures:
         self.reducers_ = {}
         reduced = []
         for col in self.string_columns_:
-            block = embeddings[col]
+            block = np.array(embeddings[col], dtype=np.float64)
             reducer = make_pipeline(
-                StandardScaler(),
+                StandardScaler(copy=False),
                 PCA(int(min(self.n_components_, *block.shape)), random_state=1234),
             )
             reduced.append(reducer.fit_transform(block))
@@ -209,7 +209,9 @@ class TILEFeatures:
 
     def transform(self, X, embeddings):
         reduced = [
-            self.reducers_[col].transform(embeddings[col])
+            self.reducers_[col].transform(
+                np.array(embeddings[col], dtype=np.float64)
+            )
             for col in self.string_columns_
         ]
         others = X[self.other_columns_]
